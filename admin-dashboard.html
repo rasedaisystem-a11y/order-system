@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>لوحة تحكم الأدمن المتقدمة</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <style>
+        * { font-family: 'Segoe UI', Tahoma, sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #1e1e2f; padding: 15px; color: #fff; }
+        .container { max-width: 1000px; margin: auto; }
+        h1 { text-align: center; color: #f8c291; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
+        .logout-btn { background: #e74c3c; color: #fff; border: none; padding: 10px 24px; border-radius: 40px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .logout-btn:active { transform: scale(0.95); }
+        .section { background: #2d2d44; padding: 20px; border-radius: 20px; margin-bottom: 20px; }
+        .section h2 { color: #f8c291; font-size: 20px; margin-bottom: 14px; }
+        .section h3 { color: #f8c291; font-size: 17px; margin: 15px 0 10px; border-bottom: 1px solid #555; padding-bottom: 8px; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .stat-item { background: #1e1e2f; padding: 12px; border-radius: 12px; text-align: center; border-right: 3px solid #f8c291; }
+        .stat-item .number { font-size: 22px; font-weight: 800; color: #f8c291; }
+        .stat-item .label { font-size: 12px; color: #aaa; }
+        .btn { background: #f8c291; color: #1e1e2f; border: none; padding: 12px; border-radius: 40px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn:active { transform: scale(0.95); }
+        .btn-sm { background: #f8c291; color: #1e1e2f; border: none; padding: 6px 16px; border-radius: 40px; font-weight: bold; cursor: pointer; }
+        .btn-danger-sm { background: #e74c3c; color: #fff; border: none; padding: 6px 16px; border-radius: 40px; font-weight: bold; cursor: pointer; }
+        .user-item { background: #1e1e2f; padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .user-item:nth-child(odd) { background: #252540; }
+        .user-item .email { color: #f8c291; font-weight: bold; }
+        .user-item .role { background: #3a3a55; padding: 2px 12px; border-radius: 40px; font-size: 13px; }
+        .perm-checkbox { display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 4px 0; background: #1e1e2f; padding: 4px 12px; border-radius: 30px; border: 1px solid #444; }
+        .perm-checkbox label { font-size: 13px; color: #ddd; cursor: pointer; }
+        .perm-checkbox input[type="checkbox"] { width: 16px; height: 16px; accent-color: #f8c291; cursor: pointer; }
+        .user-perms { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+        .perm-tag { background: #3a3a55; padding: 2px 8px; border-radius: 20px; font-size: 11px; color: #aaa; border: 1px solid #555; }
+        .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .flex-row input, .flex-row select { flex: 1; min-width: 150px; padding: 10px; border-radius: 12px; border: none; background: #1e1e2f; color: #fff; }
+        .flex-row button { flex: 0; }
+        input, select { width: 100%; padding: 12px; border-radius: 12px; border: none; background: #1e1e2f; color: #fff; margin-bottom: 6px; }
+        input:focus, select:focus { outline: 2px solid #f8c291; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 14px 28px; border-radius: 60px; color: #fff; font-weight: bold; z-index: 99999; display: none; animation: slideUp 0.4s; box-shadow: 0 6px 25px rgba(0,0,0,0.5); }
+        .toast.show { display: block; }
+        .toast-success { background: #28a745; }
+        .toast-error { background: #e74c3c; }
+        .toast-warning { background: #f5b342; color: #1e1e2f; }
+        @keyframes slideUp { 0% { opacity: 0; transform: translateX(-50%) translateY(30px); } 100% { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        .loading-text { color: #888; font-size: 14px; text-align: center; padding: 20px; }
+        .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; margin-top: 8px; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 40px; font-size: 12px; font-weight: bold; }
+        .badge-success { background: #28a745; color: #fff; }
+        .badge-danger { background: #e74c3c; color: #fff; }
+        .empty-state { color: #888; text-align: center; padding: 20px; font-size: 15px; }
+        .debug-info { background: #1e1e2f; padding: 10px; border-radius: 12px; font-size: 13px; color: #aaa; margin-top: 10px; border: 1px solid #444; word-break: break-all; }
+        .debug-info strong { color: #f8c291; }
+        @media (max-width: 480px) { .btn-sm { font-size: 12px; padding: 4px 12px; } .perm-checkbox { padding: 2px 8px; } .perm-checkbox label { font-size: 12px; } .stats-row { grid-template-columns: repeat(2, 1fr); } }
+        .login-screen { display: flex; align-items: center; justify-content: center; min-height: 80vh; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <!-- شاشة تسجيل الدخول (تظهر إذا لم يكن المستخدم مسجلاً) -->
+    <div id="loginScreen" class="login-screen hidden">
+        <div style="background:#2d2d44; padding:40px; border-radius:30px; max-width:400px; width:100%; text-align:center;">
+            <h2 style="color:#f8c291;">🔐 تسجيل الدخول</h2>
+            <p style="color:#aaa; margin-bottom:16px;">يجب تسجيل الدخول لعرض لوحة الأدمن</p>
+            <button class="btn" onclick="window.location.href='/login.html'">🚪 اذهب لتسجيل الدخول</button>
+        </div>
+    </div>
+
+    <div id="mainContent" class="hidden">
+        <div class="container">
+            <h1>
+                🛡️ لوحة تحكم الأدمن المتقدمة
+                <button class="logout-btn" onclick="logout()">🚪 تسجيل خروج</button>
+            </h1>
+
+            <!-- ===== إحصائيات سريعة ===== -->
+            <div class="section">
+                <h2>📊 إحصائيات سريعة</h2>
+                <div class="stats-row">
+                    <div class="stat-item"><div class="number" id="statTotalOrders">0</div><div class="label">إجمالي الطلبات</div></div>
+                    <div class="stat-item"><div class="number" id="statTodayOrders">0</div><div class="label">طلبات اليوم</div></div>
+                    <div class="stat-item"><div class="number" id="statWeekOrders">0</div><div class="label">هذا الأسبوع</div></div>
+                    <div class="stat-item"><div class="number" id="statMonthOrders">0</div><div class="label">هذا الشهر</div></div>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-item"><div class="number" id="statTotalRevenue">0</div><div class="label">إجمالي الإيرادات</div></div>
+                    <div class="stat-item"><div class="number" id="statTodayRevenue">0</div><div class="label">إيرادات اليوم</div></div>
+                    <div class="stat-item"><div class="number" id="statWeekRevenue">0</div><div class="label">إيرادات الأسبوع</div></div>
+                    <div class="stat-item"><div class="number" id="statMonthRevenue">0</div><div class="label">إيرادات الشهر</div></div>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-item"><div class="number" id="statTotalUsers">0</div><div class="label">المستخدمين</div></div>
+                    <div class="stat-item"><div class="number" id="statTotalStores">0</div><div class="label">المحلات</div></div>
+                </div>
+            </div>
+
+            <!-- ===== إدارة المحلات ===== -->
+            <div class="section">
+                <h2>🏪 إدارة المحلات</h2>
+                <div style="background:#1e1e2f; padding:16px; border-radius:16px; margin-bottom:16px;">
+                    <h3 style="color:#f8c291; margin-bottom:10px;">➕ إضافة محل جديد</h3>
+                    <div class="two-col">
+                        <input type="text" id="newStoreName" placeholder="اسم المحل">
+                        <input type="text" id="newStoreId" placeholder="معرف المحل (مثل: grill_001)">
+                    </div>
+                    <div class="two-col">
+                        <input type="text" id="newStoreAddress" placeholder="العنوان">
+                        <input type="text" id="newStorePhone" placeholder="رقم الهاتف">
+                    </div>
+                    <button class="btn" onclick="addStore()">➕ إضافة المحل</button>
+                    <div id="addStoreStatus" style="margin-top:8px; text-align:center;"></div>
+                </div>
+                <div id="storesList"><div class="loading-text">⏳ جاري تحميل المحلات...</div></div>
+            </div>
+
+            <!-- ===== إدارة المستخدمين والصلاحيات ===== -->
+            <div class="section">
+                <h2>👥 إدارة المستخدمين والصلاحيات</h2>
+                <div style="background:#1e1e2f; padding:16px; border-radius:16px; margin-bottom:16px;">
+                    <h3 style="color:#f8c291; margin-bottom:10px;">➕ إضافة مستخدم جديد</h3>
+                    <div class="two-col">
+                        <input type="text" id="newUserName" placeholder="الاسم">
+                        <input type="email" id="newUserEmail" placeholder="البريد الإلكتروني">
+                    </div>
+                    <div class="two-col">
+                        <input type="password" id="newUserPassword" placeholder="كلمة المرور (6 أحرف على الأقل)">
+                        <select id="newUserRole">
+                            <option value="store_owner">📌 صاحب محل</option>
+                            <option value="staff">👤 موظف</option>
+                            <option value="manager">📋 مدير</option>
+                            <option value="admin">🛡️ أدمن</option>
+                        </select>
+                    </div>
+                    <div style="margin-top:10px; background:#2d2d44; padding:12px; border-radius:12px;">
+                        <label style="color:#f8c291; font-weight:bold; display:block; margin-bottom:8px;">🔑 صلاحيات مخصصة</label>
+                        <div id="newUserPermissions" class="perm-grid"></div>
+                    </div>
+                    <button class="btn" onclick="window.addUser()" style="margin-top:12px;">➕ إضافة المستخدم</button>
+                    <div id="addUserStatus" style="margin-top:8px; text-align:center;"></div>
+                </div>
+                <h3 style="color:#f8c291; margin-bottom:10px;">📋 المستخدمون الحاليون</h3>
+                <div id="usersList"><div class="loading-text">⏳ جاري تحميل المستخدمين...</div></div>
+            </div>
+
+            <!-- ===== إدارة الأقسام ===== -->
+            <div class="section">
+                <h2>📂 إدارة الأقسام</h2>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <input type="text" id="newCategory" placeholder="اسم القسم (مثل: مشروبات)" style="flex:2; min-width:150px;">
+                    <button class="btn" onclick="addCategory()" style="flex:0; padding:12px 30px; width:auto;">➕ إضافة</button>
+                </div>
+                <div id="categoriesList"><div class="loading-text">⏳ جاري تحميل الأقسام...</div></div>
+            </div>
+
+            <!-- ===== تخصيص الألوان ===== -->
+            <div class="section">
+                <h2>🎨 تخصيص الألوان</h2>
+                <div class="flex-row">
+                    <label style="color:#f8c291; min-width:140px;">خلفية الصفحة</label>
+                    <input type="color" id="adminPageBg" value="#1e1e2f" oninput="updateAdminStyle()" style="flex:0 0 60px; height:45px; padding:2px;">
+                    <button class="btn" onclick="saveAdminStyle()" style="flex:1; min-width:100px;">💾 حفظ</button>
+                </div>
+                <div id="styleStatus" style="margin-top:8px; text-align:center;"></div>
+            </div>
+
+            <!-- ===== إدارة الإعلانات ===== -->
+            <div class="section">
+                <h2>📢 إدارة الإعلانات</h2>
+                <input type="text" id="adTitle" placeholder="عنوان الإعلان">
+                <input type="text" id="adDesc" placeholder="وصف الإعلان">
+                <input type="text" id="adImage" placeholder="رابط الصورة">
+                <button class="btn" onclick="addAd()">➕ إضافة إعلان</button>
+                <div id="adsList"><div class="loading-text">⏳ جاري تحميل الإعلانات...</div></div>
+            </div>
+
+            <!-- ===== معلومات التصحيح ===== -->
+            <div class="section">
+                <h2>🔍 معلومات التصحيح</h2>
+                <div class="debug-info" id="debugInfo">
+                    <strong>المستخدم الحالي:</strong> <span id="debugUser">--</span><br>
+                    <strong>حالة الاتصال:</strong> <span id="debugStatus">جاري التحقق...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGZOWwJ9x808g0MjWUGTKGcSToBhh9jl0",
+  authDomain: "rased-system-9a9ca.firebaseapp.com",
+  databaseURL: "https://rased-system-9a9ca-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "rased-system-9a9ca",
+  storageBucket: "rased-system-9a9ca.firebasestorage.app",
+  messagingSenderId: "198389972029",
+  appId: "1:198389972029:web:e5dbf23a8bea6cd9e0fe54",
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let currentUser = null;
+
+        // ===== تسجيل الخروج (المسار المعدل) =====
+        window.logout = function() {
+            auth.signOut().then(() => {
+                window.location.href = '/login.html';   // <--- المسار المطلق من الجذر
+            }).catch((error) => {
+                console.error('خطأ في تسجيل الخروج:', error);
+                // إذا فشل، حاول التوجيه مباشرة
+                window.location.href = '/login.html';
+            });
+        };
+
+        // ===== مراقبة حالة تسجيل الدخول =====
+        auth.onAuthStateChanged((user) => {
+            const loginScreen = document.getElementById('loginScreen');
+            const mainContent = document.getElementById('mainContent');
+
+            if (user) {
+                currentUser = user;
+                loginScreen.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                document.getElementById('debugUser').textContent = user.email || user.uid;
+                loadAllData();
+            } else {
+                loginScreen.classList.remove('hidden');
+                mainContent.classList.add('hidden');
+            }
+        });
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast';
+            if (type === 'success') toast.classList.add('toast-success');
+            else if (type === 'error') toast.classList.add('toast-error');
+            else if (type === 'warning') toast.classList.add('toast-warning');
+            toast.classList.add('show');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        // =========================================================
+        // 🔑 قائمة الصلاحيات
+        // =========================================================
+        const ALL_PERMISSIONS = [
+            { key: 'can_edit_menu', label: 'تعديل المنيو' },
+            { key: 'can_upload_images', label: 'رفع الصور' },
+            { key: 'can_view_orders', label: 'مشاهدة الطلبات' },
+            { key: 'can_change_status', label: 'تغيير حالة الطلب' },
+            { key: 'can_view_reports', label: 'مشاهدة التقارير' },
+            { key: 'can_edit_store_settings', label: 'تعديل إعدادات المحل' },
+            { key: 'can_edit_location', label: 'تعديل موقع المحل' },
+            { key: 'can_manage_users', label: 'إدارة المستخدمين' },
+            { key: 'can_add_orders', label: 'إضافة طلبات (كاشير)' },
+            { key: 'can_manage_payments', label: 'إدارة المدفوعات' },
+            { key: 'can_edit_store_name', label: 'تعديل اسم المحل' }
+        ];
+
+        function renderPermissionCheckboxes(containerId, selectedPermissions = {}) {
+            const container = document.getElementById(containerId);
+            let html = '';
+            ALL_PERMISSIONS.forEach(p => {
+                const checked = selectedPermissions[p.key] === true ? 'checked' : '';
+                html += `<label class="perm-checkbox"><input type="checkbox" data-perm="${p.key}" ${checked}> ${p.label}</label>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // =========================================================
+        // 📊 الإحصائيات (عامة – بدون فلتر storeId)
+        // =========================================================
+        function loadStats() {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+            const monthAgo = new Date(now); monthAgo.setMonth(now.getMonth() - 1);
+
+            db.collection('orders').onSnapshot((snap) => {
+                let total = 0, todayCount = 0, weekCount = 0, monthCount = 0;
+                let revenue = 0, todayRevenue = 0, weekRevenue = 0, monthRevenue = 0;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    total++;
+                    const created = d.createdAt ? d.createdAt.toDate() : null;
+                    if (created) {
+                        if (created >= today) { todayCount++; todayRevenue += d.totalPrice || 0; }
+                        if (created >= weekAgo) { weekCount++; weekRevenue += d.totalPrice || 0; }
+                        if (created >= monthAgo) { monthCount++; monthRevenue += d.totalPrice || 0; }
+                    }
+                    revenue += d.totalPrice || 0;
+                });
+                document.getElementById('statTotalOrders').textContent = total;
+                document.getElementById('statTodayOrders').textContent = todayCount;
+                document.getElementById('statWeekOrders').textContent = weekCount;
+                document.getElementById('statMonthOrders').textContent = monthCount;
+                document.getElementById('statTotalRevenue').textContent = revenue + ' ريال';
+                document.getElementById('statTodayRevenue').textContent = todayRevenue + ' ريال';
+                document.getElementById('statWeekRevenue').textContent = weekRevenue + ' ريال';
+                document.getElementById('statMonthRevenue').textContent = monthRevenue + ' ريال';
+            }, (error) => console.error('❌ خطأ في الإحصائيات:', error));
+
+            db.collection('users').onSnapshot((snap) => {
+                document.getElementById('statTotalUsers').textContent = snap.size;
+            });
+
+            db.collection('stores').onSnapshot((snap) => {
+                document.getElementById('statTotalStores').textContent = snap.size;
+            });
+        }
+
+        // =========================================================
+        // 🏪 إدارة المحلات (جميع المحلات)
+        // =========================================================
+        window.addStore = async function() {
+            const name = document.getElementById('newStoreName').value.trim();
+            const storeId = document.getElementById('newStoreId').value.trim();
+            const address = document.getElementById('newStoreAddress').value.trim();
+            const phone = document.getElementById('newStorePhone').value.trim();
+            if (!name || !storeId) { showToast('⚠️ أدخل اسم المحل ومعرفه', 'warning'); return; }
+            try {
+                await db.collection('stores').doc(storeId).set({ name, storeId, address, phone, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                await db.collection('settings').doc(storeId).set({ storeName: name, storeId, headerColor: '#3e2c1b', backgroundColor: '#f8f4f0', cardBackgroundColor: '#ffffff', textColor: '#3e2c1b', primaryColor: '#3e2c1b', headerHeight: 240, logoSize: 160, hideHeader: false });
+                showToast('✅ تم إضافة المحل');
+                document.querySelectorAll('#newStoreName, #newStoreId, #newStoreAddress, #newStorePhone').forEach(el => el.value = '');
+                loadStores(); loadStats();
+            } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+
+        function loadStores() {
+            db.collection('stores').orderBy('createdAt', 'desc').onSnapshot((snap) => {
+                const container = document.getElementById('storesList');
+                if (snap.empty) { container.innerHTML = '<div class="empty-state">🏪 لا توجد محلات</div>'; return; }
+                let html = '';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    html += `<div class="user-item"><div><div class="email">${d.name}</div><span style="color:#aaa;font-size:13px;">المعرف: ${d.storeId}</span>${d.address ? ` | 📍 ${d.address}` : ''}${d.phone ? ` | 📞 ${d.phone}` : ''}</div><div><button class="btn-sm" onclick="editStore('${d.id}')">✏️</button><button class="btn-danger-sm" onclick="deleteStore('${d.id}')">🗑️</button></div></div>`;
+                });
+                container.innerHTML = html;
+            }, (error) => { document.getElementById('storesList').innerHTML = '<div class="empty-state" style="color:#e74c3c;">⚠️ خطأ في التحميل</div>'; });
+        }
+
+        window.deleteStore = async function(storeId) {
+            if (!confirm('⚠️ حذف المحل وجميع بياناته؟')) return;
+            try { await db.collection('stores').doc(storeId).delete(); await db.collection('settings').doc(storeId).delete(); showToast('✅ تم الحذف'); loadStores(); loadStats(); } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+        window.editStore = function(storeId) {
+            const newName = prompt('✏️ الاسم الجديد:');
+            if (newName && newName.trim()) { db.collection('stores').doc(storeId).update({ name: newName.trim() }); db.collection('settings').doc(storeId).update({ storeName: newName.trim() }); showToast('✅ تم التحديث'); loadStores(); }
+        };
+
+        // =========================================================
+        // 👥 إدارة المستخدمين (جميع المستخدمين)
+        // =========================================================
+        let usersData = [];
+        window.addUser = async function() {
+            const name = document.getElementById('newUserName').value.trim();
+            const email = document.getElementById('newUserEmail').value.trim();
+            const password = document.getElementById('newUserPassword').value.trim();
+            const role = document.getElementById('newUserRole').value;
+            if (!name || !email || !password) { showToast('⚠️ املأ جميع الحقول', 'warning'); return; }
+            if (password.length < 6) { showToast('⚠️ كلمة المرور 6 أحرف على الأقل', 'warning'); return; }
+            const perms = {};
+            document.querySelectorAll('#newUserPermissions input[type="checkbox"]').forEach(cb => { perms[cb.dataset.perm] = cb.checked; });
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const uid = userCredential.user.uid;
+                await db.collection('users').doc(uid).set({ name, email, role, storeId: document.getElementById('newStoreId')?.value || '', permissions: perms, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                showToast('✅ تم إضافة المستخدم');
+                document.querySelectorAll('#newUserName, #newUserEmail, #newUserPassword').forEach(el => el.value = '');
+                document.querySelectorAll('#newUserPermissions input[type="checkbox"]').forEach(el => el.checked = false);
+                loadUsers(); loadStats();
+            } catch (e) { showToast('❌ ' + e.message, 'error'); console.error(e); }
+        };
+
+        function loadUsers() {
+            const container = document.getElementById('usersList');
+            container.innerHTML = '<div class="loading-text">⏳ جاري تحميل المستخدمين...</div>';
+            db.collection('users').orderBy('createdAt', 'desc').onSnapshot((snap) => {
+                usersData = []; snap.forEach(doc => usersData.push({ id: doc.id, ...doc.data() }));
+                if (usersData.length === 0) {
+                    container.innerHTML = `<div class="empty-state">👥 لا يوجد مستخدمون</div>`;
+                    return;
+                }
+                let html = '';
+                usersData.forEach(u => {
+                    const perms = u.permissions || {};
+                    const permNames = ALL_PERMISSIONS.filter(p => perms[p.key] === true).map(p => p.label).join('، ') || 'لا توجد صلاحيات';
+                    html += `<div class="user-item"><div><div class="email">${u.name} (${u.email})</div><span class="role">${u.role || 'غير محدد'}</span><div class="user-perms">🔑 <strong>الصلاحيات:</strong> ${permNames}</div></div><div><button class="btn-sm" onclick="openEditPerms('${u.id}')">✏️</button><button class="btn-danger-sm" onclick="deleteUser('${u.id}')">🗑️</button></div></div>`;
+                });
+                container.innerHTML = html;
+                document.getElementById('debugStatus').textContent = '✅ تم تحميل المستخدمين';
+            }, (error) => {
+                container.innerHTML = `<div class="empty-state" style="color:#e74c3c;">⚠️ خطأ في التحميل: ${error.message}</div>`;
+                document.getElementById('debugStatus').textContent = '❌ خطأ: ' + error.message;
+            });
+        }
+
+        // تعديل الصلاحيات (Modal)
+        window.openEditPerms = function(uid) {
+            const user = usersData.find(u => u.id === uid);
+            if (!user) { showToast('⚠️ المستخدم غير موجود', 'error'); return; }
+            const currentPerms = user.permissions || {};
+            let modalHtml = `<div id="editPermModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl;"><div style="background:#2d2d44;padding:24px;border-radius:24px;max-width:550px;width:100%;max-height:90vh;overflow-y:auto;"><h3 style="color:#f8c291;margin-bottom:16px;">🔑 تعديل صلاحيات: ${user.name}</h3><div id="editPermsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">`;
+            ALL_PERMISSIONS.forEach(p => {
+                const checked = currentPerms[p.key] === true ? 'checked' : '';
+                modalHtml += `<label style="display:flex;align-items:center;gap:10px;background:#1e1e2f;padding:8px 14px;border-radius:12px;cursor:pointer;color:#ddd;"><input type="checkbox" data-perm="${p.key}" ${checked} style="width:18px;height:18px;accent-color:#f8c291;"> ${p.label}</label>`;
+            });
+            modalHtml += `</div><div style="display:flex;gap:10px;"><button onclick="saveEditPerms('${uid}')" style="flex:1;background:#28a745;color:#fff;border:none;padding:12px;border-radius:40px;font-weight:bold;cursor:pointer;">💾 حفظ</button><button onclick="closeEditPerms()" style="flex:1;background:#e74c3c;color:#fff;border:none;padding:12px;border-radius:40px;font-weight:bold;cursor:pointer;">إلغاء</button></div></div></div>`;
+            const oldModal = document.getElementById('editPermModal');
+            if (oldModal) oldModal.remove();
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        };
+        window.saveEditPerms = async function(uid) {
+            const perms = {};
+            document.querySelectorAll('#editPermsList input[type="checkbox"]').forEach(cb => { perms[cb.dataset.perm] = cb.checked; });
+            try { await db.collection('users').doc(uid).update({ permissions: perms }); showToast('✅ تم تحديث الصلاحيات'); closeEditPerms(); loadUsers(); } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+        window.closeEditPerms = function() { const modal = document.getElementById('editPermModal'); if (modal) modal.remove(); };
+        window.deleteUser = async function(uid) {
+            if (!confirm('⚠️ حذف المستخدم نهائياً؟')) return;
+            try { await db.collection('users').doc(uid).delete(); showToast('✅ تم الحذف'); loadUsers(); loadStats(); } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+
+        // ===== إدارة الأقسام (عامة) =====
+        window.addCategory = async function() {
+            const name = document.getElementById('newCategory').value.trim();
+            if (!name) { showToast('⚠️ أدخل اسم القسم', 'warning'); return; }
+            try { await db.collection('categories').add({ name, storeId: document.getElementById('newStoreId')?.value || '', createdAt: firebase.firestore.FieldValue.serverTimestamp() }); showToast('✅ تمت الإضافة'); document.getElementById('newCategory').value = ''; loadCategories(); } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+        window.deleteCategory = async (id) => {
+            if (!confirm('⚠️ حذف القسم؟')) return;
+            try { await db.collection('categories').doc(id).delete(); showToast('✅ تم الحذف'); loadCategories(); } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+        function loadCategories() {
+            const container = document.getElementById('categoriesList');
+            container.innerHTML = '<div class="loading-text">⏳ جاري تحميل الأقسام...</div>';
+            db.collection('categories').orderBy('name').onSnapshot((snap) => {
+                if (snap.empty) { container.innerHTML = `<div class="empty-state">📂 لا توجد أقسام</div>`; return; }
+                let html = '';
+                snap.forEach(doc => { const d = doc.data(); html += `<div class="user-item"><span>📂 ${d.name}</span><button class="btn-danger-sm" onclick="deleteCategory('${doc.id}')">🗑️</button></div>`; });
+                container.innerHTML = html;
+                document.getElementById('debugStatus').textContent = '✅ تم تحميل الأقسام';
+            }, (error) => {
+                container.innerHTML = `<div class="empty-state" style="color:#e74c3c;">⚠️ خطأ في التحميل: ${error.message}</div>`;
+                document.getElementById('debugStatus').textContent = '❌ خطأ: ' + error.message;
+            });
+        }
+
+        // ===== الألوان والإعلانات =====
+        function updateAdminStyle() { document.body.style.background = document.getElementById('adminPageBg').value; }
+        window.saveAdminStyle = async function() {
+            try { await db.collection('settings').doc('store').set({ adminPageBg: document.getElementById('adminPageBg').value }, { merge: true }); showToast('✅ تم حفظ اللون'); } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+        function loadAdminStyle() {
+            db.collection('settings').doc('store').onSnapshot((doc) => {
+                if (doc.exists && doc.data().adminPageBg) {
+                    document.getElementById('adminPageBg').value = doc.data().adminPageBg;
+                    document.body.style.background = doc.data().adminPageBg;
+                }
+            });
+        }
+        window.addAd = async function() {
+            const title = document.getElementById('adTitle').value.trim();
+            const desc = document.getElementById('adDesc').value.trim();
+            const image = document.getElementById('adImage').value.trim();
+            if (!title || !desc) { showToast('⚠️ أدخل العنوان والوصف', 'warning'); return; }
+            try { await db.collection('ads').add({ title, desc, image: image || '', active: true, storeId: document.getElementById('newStoreId')?.value || '', createdAt: firebase.firestore.FieldValue.serverTimestamp() }); showToast('✅ تمت الإضافة'); document.querySelectorAll('#adTitle, #adDesc, #adImage').forEach(el => el.value = ''); loadAds(); } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+        window.toggleAd = async (id, active) => {
+            try { await db.collection('ads').doc(id).update({ active: !active }); showToast('✅ تم التحديث'); loadAds(); } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+        window.deleteAd = async (id) => {
+            if (!confirm('⚠️ حذف الإعلان؟')) return;
+            try { await db.collection('ads').doc(id).delete(); showToast('✅ تم الحذف'); loadAds(); } catch (e) { showToast('❌ ' + e.message, 'error'); }
+        };
+        function loadAds() {
+            const container = document.getElementById('adsList');
+            container.innerHTML = '<div class="loading-text">⏳ جاري تحميل الإعلانات...</div>';
+            db.collection('ads').orderBy('createdAt', 'desc').onSnapshot((snap) => {
+                if (snap.empty) { container.innerHTML = '<div class="empty-state">📢 لا توجد إعلانات</div>'; return; }
+                let html = '';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    html += `<div class="user-item"><div><strong>${d.title}</strong> - ${d.desc} <span class="badge ${d.active ? 'badge-success' : 'badge-danger'}">${d.active ? '✅ مفعل' : '❌ غير مفعل'}</span></div><div><button class="btn-sm" onclick="toggleAd('${doc.id}', ${d.active})" style="background:${d.active ? '#e74c3c' : '#28a745'}; color:#fff;">${d.active ? 'إيقاف' : 'تفعيل'}</button><button class="btn-danger-sm" onclick="deleteAd('${doc.id}')">🗑️</button></div></div>`;
+                });
+                container.innerHTML = html;
+            }, (error) => { container.innerHTML = `<div class="empty-state" style="color:#e74c3c;">⚠️ خطأ في التحميل</div>`; });
+        }
+
+        function checkFirestoreConnection() {
+            db.collection('stores').limit(1).get()
+                .then(() => { document.getElementById('debugStatus').textContent = '✅ الاتصال بقاعدة البيانات ناجح'; })
+                .catch((error) => { document.getElementById('debugStatus').textContent = '❌ فشل الاتصال: ' + error.message; });
+        }
+
+        function loadAllData() {
+            renderPermissionCheckboxes('newUserPermissions');
+            loadStats();
+            loadStores();
+            loadUsers();
+            loadCategories();
+            loadAds();
+            loadAdminStyle();
+            checkFirestoreConnection();
+            console.log('✅ admin.html (أدمن عام) جاهز');
+        }
+    </script>
+</body>
+</html>
