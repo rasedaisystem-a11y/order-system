@@ -3,274 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>لوحة الطلبات - المطعم</title>
+    <title>تسجيل الدخول</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <style>
         * { font-family: 'Segoe UI', Tahoma, sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #1e1e2f; padding: 12px; color: #fff; transition: background 0.3s; }
-        .container { max-width: 700px; margin: auto; }
-        h1 { text-align: center; font-size: 26px; margin-bottom: 18px; color: #f8c291; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; transition: color 0.3s; }
-        .header-sub { font-size: 14px; color: #aaa; font-weight: normal; }
-        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: #2d2d44; padding: 12px 8px; border-radius: 16px; text-align: center; border-right: 4px solid #f8c291; }
-        .stat-box .number { font-size: 24px; font-weight: 800; color: #f8c291; }
-        .stat-box .label { font-size: 12px; color: #aaa; margin-top: 4px; }
-        .empty-state { text-align: center; color: #888; padding: 40px; }
-        .order-card { background: #2d2d44; border-radius: 24px; padding: 18px; margin-bottom: 14px; border-right: 6px solid #f8c291; transition: background 0.3s, border-color 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .card-header { display: flex; flex-wrap: wrap; justify-content: space-between; margin-bottom: 8px; gap: 6px; align-items: center; }
-        .plate-number { font-size: 20px; font-weight: 800; color: #f8c291; transition: color 0.3s; }
-        .products-list { background: #1e1e2f; padding: 10px 14px; border-radius: 14px; margin: 8px 0; font-size: 15px; color: #ddd; word-break: break-word; }
-        .status-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 2px solid #3a3a55; align-items: center; }
-        .status-btn { flex: 0 1 auto; padding: 8px 12px; border: 2px solid #555; border-radius: 40px; background: transparent; color: #aaa; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s; font-size: 13px; white-space: nowrap; }
-        .status-btn:active { transform: scale(0.95); }
-        .status-btn:hover { border-color: #f8c291; color: #f8c291; }
-        .status-dot { display: inline-block; width: 16px; height: 16px; border-radius: 50%; margin-left: 6px; vertical-align: middle; border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0; }
-        .status-dot-new { background: #e74c3c; }
-        .status-dot-preparing { background: #f5b342; }
-        .status-dot-ready { background: #28a745; }
-        .status-dot-ready_for_delivery { background: #f39c12; }
-        .status-dot-on_the_way { background: #e67e22; }
-        .status-dot-arrived { background: #9b59b6; }
-        .status-dot-completed { background: #17a2b8; }
-        .status-dot-delivered { background: #17a2b8; }
-        .status-label-text { font-weight: bold; font-size: 14px; }
-        .bell-container { display: inline-flex; align-items: center; gap: 8px; background: #2d2d44; padding: 6px 14px; border-radius: 40px; cursor: pointer; transition: background 0.3s; border: 1px solid #444; }
-        .bell-container:active { transform: scale(0.95); }
-        .bell-icon { font-size: 26px; line-height: 1; }
-        .bell-badge { background: #e74c3c; color: #fff; border-radius: 50%; padding: 0 10px; font-size: 14px; font-weight: bold; min-width: 24px; height: 24px; display: none; align-items: center; justify-content: center; line-height: 24px; }
-        .bell-ring { animation: ring 0.5s ease infinite alternate; }
-        @keyframes ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(20deg); } }
-        .timer-container { display: inline-block; background: #1e1e2f; padding: 4px 14px; border-radius: 40px; font-size: 14px; margin: 6px 0; color: #ddd; }
-        .timer-warning { color: #f5b342; }
-        .timer-danger { color: #e74c3c; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        .contact-buttons { display: flex; gap: 6px; margin: 4px 0; flex-wrap: wrap; }
-        .contact-btn { padding: 6px 12px; border-radius: 40px; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; border: none; cursor: pointer; font-weight: bold; }
-        .contact-btn-phone { background: #28a745; color: #fff; }
-        .contact-btn-whatsapp { background: #25D366; color: #fff; }
-        .contact-btn:active { transform: scale(0.95); }
-        .distance-badge { font-size: 13px; color: #aaa; margin: 4px 0; padding: 4px 12px; background: #1e1e2f; border-radius: 40px; display: inline-block; }
-        .status-status-badge { display: inline-flex; align-items: center; gap: 6px; background: #1e1e2f; padding: 4px 14px; border-radius: 40px; margin-left: auto; }
-        .no-permission-msg { color: #e74c3c; font-size: 13px; }
-        .hidden { display: none !important; }
-        @media (max-width: 480px) {
-            body { padding: 8px; }
-            h1 { font-size: 20px; gap: 8px; }
-            .bell-icon { font-size: 22px; }
-            .bell-container { padding: 4px 10px; }
-            .stat-box .number { font-size: 20px; }
-            .stat-box { padding: 10px 6px; }
-            .order-card { padding: 14px; border-right-width: 4px; }
-            .plate-number { font-size: 17px; }
-            .products-list { font-size: 13px; padding: 8px 12px; }
-            .status-btn { font-size: 12px; padding: 6px 10px; }
-            .contact-btn { font-size: 12px; padding: 4px 10px; }
-            .stats-row { grid-template-columns: repeat(2, 1fr); gap: 6px; }
-        }
-        @media (max-width: 380px) {
-            .card-header { flex-direction: column; align-items: flex-start; }
-            .status-actions { flex-direction: column; align-items: stretch; }
-            .status-status-badge { margin-left: 0; justify-content: center; }
-        }
+        body { background: #1e1e2f; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        .login-box { background: #2d2d44; padding: 40px; border-radius: 30px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+        .login-box h2 { color: #f8c291; margin-bottom: 20px; font-size: 28px; }
+        .login-box input { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #1e1e2f; color: #fff; font-size: 16px; margin-bottom: 12px; outline: none; }
+        .login-box input:focus { outline: 2px solid #f8c291; }
+        .login-box button { background: #f8c291; color: #1e1e2f; border: none; padding: 14px; border-radius: 60px; font-weight: bold; font-size: 18px; cursor: pointer; width: 100%; }
+        .login-box button:active { transform: scale(0.95); }
+        .login-box .error { color: #e74c3c; margin-top: 12px; display: none; }
+        .login-box .hint { color: #aaa; font-size: 14px; margin-top: 16px; }
+        .login-box .hint strong { color: #f8c291; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 id="pageTitle">
-            📋 الطلبات
-            <span class="bell-container" onclick="resetNewOrders()" title="إشعارات الطلبات الجديدة">
-                <span class="bell-icon" id="bellIcon">🔔</span>
-                <span class="bell-badge" id="bellBadge">0</span>
-            </span>
-            <span class="header-sub" id="roleDisplay"></span>
-        </h1>
-        <div class="stats-row">
-            <div class="stat-box"><div class="number" id="statTotalOrders">0</div><div class="label">إجمالي الطلبات</div></div>
-            <div class="stat-box"><div class="number" id="statTodayOrders">0</div><div class="label">طلبات اليوم</div></div>
-            <div class="stat-box"><div class="number" id="statTotalRevenue">0</div><div class="label">الإيرادات</div></div>
-            <div class="stat-box"><div class="number" id="statActiveOrders">0</div><div class="label">طلبات نشطة</div></div>
+    <div class="login-box">
+        <h2>🔐 تسجيل الدخول</h2>
+        <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" autocomplete="email">
+        <input type="password" id="loginPassword" placeholder="كلمة المرور" autocomplete="current-password">
+        <button onclick="login()">🚪 دخول</button>
+        <div class="error" id="loginError"></div>
+        <div class="hint">
+            <strong>💡 للمطور:</strong> استخدم أي حساب مسجل في النظام.<br>
+            مثال: <strong>admin@system.com</strong> / <strong>123456</strong>
         </div>
-        <div id="ordersContainer"><div class="empty-state">⏳ جاري التحميل...</div></div>
     </div>
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyAGZ0lWwJ9x808g0MjWUGTKGcStoBh9j1o",
-            authDomain: "rased-system-9a9ca.firebaseapp.com",
-            projectId: "rased-system-9a9ca",
-            storageBucket: "rased-system-9a9ca.appspot.com"
+             apiKey: "AIzaSyAGZOWwJ9x808g0MjWUGTKGcSToBhh9jl0",
+  authDomain: "rased-system-9a9ca.firebaseapp.com",
+  databaseURL: "https://rased-system-9a9ca-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "rased-system-9a9ca",
+  storageBucket: "rased-system-9a9ca.firebasestorage.app",
+  messagingSenderId: "198389972029",
+  appId: "1:198389972029:web:e5dbf23a8bea6cd9e0fe54"
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
         const auth = firebase.auth();
 
-        function getStoreId() {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('store') || 'store_001';
-        }
-        const STORE_ID = getStoreId();
+        window.login = async function() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const errorDiv = document.getElementById('loginError');
 
-        // ===== صلاحيات المستخدم =====
-        let canChangeStatus = false;
-
-        function applyPermissions(perms) {
-            canChangeStatus = perms.can_change_status === true;
-            document.querySelectorAll('.status-btn').forEach(btn => {
-                btn.style.display = canChangeStatus ? 'inline-block' : 'none';
-            });
-            document.querySelectorAll('.no-permission-msg').forEach(el => el.remove());
-            if (!canChangeStatus) {
-                document.querySelectorAll('.status-actions').forEach(el => {
-                    const msg = document.createElement('span');
-                    msg.className = 'no-permission-msg';
-                    msg.textContent = '🔒 لا توجد صلاحية لتغيير الحالة';
-                    el.appendChild(msg);
-                });
+            if (!email || !password) {
+                errorDiv.textContent = '⚠️ أدخل البريد وكلمة المرور';
+                errorDiv.style.display = 'block';
+                return;
             }
-        }
 
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                try {
-                    const doc = await db.collection('users').doc(user.uid).get();
-                    if (doc.exists) {
-                        const data = doc.data();
-                        applyPermissions(data.permissions || {});
-                        document.getElementById('roleDisplay').textContent = data.role === 'driver' ? '🚚 مندوب' : '👨‍💼 صاحب المحل';
-                        loadOrders();
-                        loadStats();
-                    }
-                } catch (e) { console.error('❌ خطأ في تحميل الصلاحيات:', e); }
-            } else {
-                document.getElementById('roleDisplay').textContent = '🚫 غير مسجل';
-                // ===== التعديل هنا: إضافة رابط لتسجيل الدخول =====
-                document.getElementById('ordersContainer').innerHTML = `
-                    <div class="empty-state">
-                        🔒 يرجى تسجيل الدخول
-                        <br>
-                        <a href="/login.html" style="color:#f8c291; text-decoration:underline; display:inline-block; margin-top:10px; font-size:18px;">🚪 اذهب لتسجيل الدخول</a>
-                    </div>
-                `;
-            }
-        });
-
-        // ===== الجرس والمؤقتات =====
-        let newOrdersCount = 0, notifiedNewIds = new Set();
-        function playBeep() { try { const ctx = new(window.AudioContext || window.webkitAudioContext)(); const osc1 = ctx.createOscillator(); const g1 = ctx.createGain(); osc1.connect(g1); g1.connect(ctx.destination); osc1.frequency.value = 950; osc1.type = 'sine'; g1.gain.value = 0.25; osc1.start(); setTimeout(() => osc1.stop(), 300); setTimeout(() => { const osc2 = ctx.createOscillator(); const g2 = ctx.createGain(); osc2.connect(g2); g2.connect(ctx.destination); osc2.frequency.value = 1350; osc2.type = 'sine'; g2.gain.value = 0.25; osc2.start(); setTimeout(() => osc2.stop(), 300); }, 200); } catch (e) { /* صوت غير مدعوم */ } }
-        function updateBell(count) { const badge = document.getElementById('bellBadge'); const icon = document.getElementById('bellIcon'); if (count > 0) { badge.style.display = 'inline-flex'; badge.textContent = count; icon.classList.add('bell-ring'); clearTimeout(window.bellTimeout); window.bellTimeout = setTimeout(() => icon.classList.remove('bell-ring'), 5000); } else { badge.style.display = 'none'; icon.classList.remove('bell-ring'); } }
-        function resetNewOrders() { if (newOrdersCount === 0) return; newOrdersCount = 0; updateBell(0); db.collection('orders').where('isNew', '==', true).get().then((snap) => { snap.forEach(doc => doc.ref.update({ isNew: false })); }); }
-
-        let storeLat = null, storeLng = null;
-        function getDistance(lat1, lon1, lat2, lon2) { if (!lat1 || !lon1 || !lat2 || !lon2) return null; const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180; const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2); const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c * 1000; }
-        db.collection('settings').doc('store').onSnapshot((doc) => { if (doc.exists) { const d = doc.data(); storeLat = d.storeLat || null; storeLng = d.storeLng || null; } });
-        function formatTimer(startedAt, estimatedMinutes) { if (!startedAt) return { elapsed: '--', remaining: '--', status: 'idle' }; const now = Date.now(); const start = startedAt.toMillis(); const elapsedSeconds = Math.floor((now - start) / 1000); const elapsedMinutes = Math.floor(elapsedSeconds / 60); const remainingSeconds = Math.max(0, (estimatedMinutes * 60) - elapsedSeconds); const remainingMinutes = Math.floor(remainingSeconds / 60); const remainingSecs = remainingSeconds % 60; let status = 'ok'; if (remainingSeconds <= 0) status = 'danger'; else if (remainingSeconds < 120) status = 'warning'; return { elapsed: `${elapsedMinutes}:${String(elapsedSeconds % 60).padStart(2, '0')}`, remaining: remainingSeconds > 0 ? `${remainingMinutes}:${String(remainingSecs).padStart(2, '0')}` : 'انتهى', status }; }
-
-        function loadStats() {
-            const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            db.collection('orders').where('storeId', '==', STORE_ID).onSnapshot((snap) => {
-                let total = 0, todayCount = 0, revenue = 0, active = 0;
-                snap.forEach(doc => { const d = doc.data(); total++; if (d.totalPrice) revenue += d.totalPrice; if (d.createdAt && d.createdAt.toDate() >= today) todayCount++; if (d.status !== 'completed' && d.status !== 'delivered') active++; });
-                document.getElementById('statTotalOrders').textContent = total;
-                document.getElementById('statTodayOrders').textContent = todayCount;
-                document.getElementById('statTotalRevenue').textContent = revenue + ' ريال';
-                document.getElementById('statActiveOrders').textContent = active;
-            });
-        }
-
-        function applyAdminColors() {
-            db.collection('settings').doc('store').onSnapshot((doc) => {
-                if (doc.exists) {
-                    const d = doc.data();
-                    if (d.adminBg) document.body.style.background = d.adminBg;
-                    const title = document.getElementById('pageTitle');
-                    if (title && d.primaryColor) title.style.color = d.primaryColor;
-                    document.querySelectorAll('.order-card').forEach(el => { if (d.adminCardBg) el.style.background = d.adminCardBg; if (d.primaryColor) el.style.borderRightColor = d.primaryColor; });
-                    document.querySelectorAll('.plate-number').forEach(el => { if (d.primaryColor) el.style.color = d.primaryColor; });
-                    document.querySelectorAll('.stat-box').forEach(el => { if (d.primaryColor) el.style.borderRightColor = d.primaryColor; });
-                    document.querySelectorAll('.stat-box .number').forEach(el => { if (d.primaryColor) el.style.color = d.primaryColor; });
-                    const bellContainer = document.querySelector('.bell-container');
-                    if (bellContainer && d.adminCardBg) bellContainer.style.background = d.adminCardBg;
-                }
-            });
-        }
-        applyAdminColors();
-
-        let ordersUnsubscribe = null;
-        function loadOrders() {
-            if (ordersUnsubscribe) { ordersUnsubscribe(); ordersUnsubscribe = null; }
-            ordersUnsubscribe = db.collection('orders').where('storeId', '==', STORE_ID).orderBy('createdAt', 'desc').onSnapshot((snap) => {
-                const container = document.getElementById('ordersContainer');
-                if (snap.empty) { container.innerHTML = '<div class="empty-state">📭 لا توجد طلبات</div>'; return; }
-                let html = '', newCount = 0;
-                snap.forEach(doc => {
-                    const d = doc.data(), id = doc.id, status = d.status || 'new';
-                    if (status === 'completed' || status === 'delivered') return;
-                    const items = d.items ? d.items.map(i => `${i.name}×${i.qty}`).join(', ') : d.product || '---';
-                    const isDelivery = d.orderType === 'delivery';
-                    if (d.isNew === true && !notifiedNewIds.has(id)) { newCount++; notifiedNewIds.add(id); playBeep(); }
-                    newOrdersCount += (d.isNew === true && !notifiedNewIds.has(id)) ? 1 : 0;
-                    updateBell(newOrdersCount);
-                    let timerHtml = '';
-                    if (status === 'preparing' && d.preparingStartedAt && d.estimatedTime) {
-                        const timer = formatTimer(d.preparingStartedAt, d.estimatedTime);
-                        const timerClass = timer.status === 'danger' ? 'timer-danger' : timer.status === 'warning' ? 'timer-warning' : '';
-                        timerHtml = `<div class="timer-container ${timerClass}" data-timer-id="${id}">⏱️ مضى: ${timer.elapsed} | متبقي: ${timer.remaining}</div>`;
-                    } else if ((status === 'ready' || status === 'ready_for_delivery') && d.preparingStartedAt && d.estimatedTime) {
-                        const timer = formatTimer(d.preparingStartedAt, d.estimatedTime);
-                        timerHtml = `<div class="timer-container" data-timer-id="${id}">⏱️ مضى: ${timer.elapsed} | ✅ تم التجهيز</div>`;
-                    }
-                    let distanceHtml = '';
-                    if (d.clientLat && d.clientLng && storeLat !== null && storeLng !== null) {
-                        const dist = getDistance(storeLat, storeLng, d.clientLat, d.clientLng);
-                        if (dist !== null) {
-                            const color = dist < 200 ? '#28a745' : '#aaa';
-                            distanceHtml = `<div class="distance-badge" style="color:${color};">📏 المسافة: ${Math.round(dist)} متر ${dist < 200 ? '📍 قريب!' : ''}</div>`;
-                        }
-                    }
-                    const dotMap = { 'new': 'status-dot-new', 'preparing': 'status-dot-preparing', 'ready': 'status-dot-ready', 'ready_for_delivery': 'status-dot-ready_for_delivery', 'on_the_way': 'status-dot-on_the_way', 'client_arrived': 'status-dot-arrived', 'completed': 'status-dot-completed', 'delivered': 'status-dot-delivered' };
-                    const dotClass = dotMap[status] || 'status-dot-new';
-                    const statusLabels = { 'new': 'جديد', 'preparing': 'تجهيز', 'ready': 'جاهز', 'ready_for_delivery': 'جاهز للتوصيل', 'on_the_way': 'في الطريق', 'client_arrived': 'بالخارج', 'completed': 'تم', 'delivered': 'تم التوصيل' };
-                    const colorMap = { 'new': '#e74c3c', 'preparing': '#f5b342', 'ready': '#28a745', 'ready_for_delivery': '#f39c12', 'on_the_way': '#e67e22', 'client_arrived': '#9b59b6', 'completed': '#17a2b8', 'delivered': '#17a2b8' };
-                    const labelColor = colorMap[status] || '#e74c3c';
-                    let actionButtons = '';
-                    if (canChangeStatus && status !== 'completed' && status !== 'delivered') {
-                        let nextStatusMap = isDelivery ? { 'new': 'preparing', 'preparing': 'ready_for_delivery', 'ready_for_delivery': 'on_the_way', 'on_the_way': 'delivered' } : { 'new': 'preparing', 'preparing': 'ready', 'ready': 'client_arrived', 'client_arrived': 'completed' };
-                        const nextLabels = { 'new': '▶️ تجهيز', 'preparing': '▶️ جاهز', 'ready': '▶️ وصول العميل', 'ready_for_delivery': '▶️ في الطريق', 'on_the_way': '📦 تم التوصيل', 'client_arrived': '✔️ إنهاء' };
-                        const nextStatus = nextStatusMap[status];
-                        if (nextStatus) { actionButtons += `<button class="status-btn" onclick="updateStatus('${id}','${nextStatus}')">${nextLabels[status] || '▶️ التالي'}</button>`; }
-                        if (status === 'ready' || status === 'client_arrived' || status === 'on_the_way') {
-                            actionButtons += `<button class="status-btn" style="background:#17a2b8; border-color:#17a2b8; color:#fff;" onclick="if(confirm('إنهاء الطلب نهائياً؟')) updateStatus('${id}','${isDelivery ? 'delivered' : 'completed'}')">✔️ إنهاء</button>`;
-                        }
-                    }
-                    html += `<div class="order-card"><div class="card-header"><span class="plate-number">🚗 ${d.plate || '---'}</span><span>📱 ${d.phone || '---'}</span><span style="font-size:12px;color:#888;">${d.createdAt ? d.createdAt.toDate().toLocaleTimeString() : ''}</span></div><div style="font-size:13px; color:#aaa; margin:4px 0;">${isDelivery ? '🚚 توصيل للمنزل' : '📍 استلام من المحل'}</div><div class="contact-buttons">${d.phone ? `<a href="tel:${d.phone}" class="contact-btn contact-btn-phone">📞 اتصال</a>` : ''}${d.phone ? `<a href="https://wa.me/${d.phone}" target="_blank" class="contact-btn contact-btn-whatsapp">💬 واتساب</a>` : ''}</div><div class="products-list">📦 ${items}</div>${timerHtml}${distanceHtml}<div class="status-actions"><span class="status-status-badge"><span class="status-dot ${dotClass}"></span><span style="font-weight:bold; color:${labelColor};">${statusLabels[status] || 'جديد'}</span></span>${actionButtons}</div></div>`;
-                });
-                container.innerHTML = html;
-                updateBell(newOrdersCount);
-            }, (error) => {
-                console.error("❌ خطأ في الاستماع:", error);
-                document.getElementById('ordersContainer').innerHTML = '<div class="empty-state" style="color:red;">⚠️ خطأ في الاتصال بقاعدة البيانات</div>';
-            });
-        }
-
-        window.updateStatus = async (id, status) => {
-            if (!canChangeStatus) { alert('⚠️ ليس لديك صلاحية تغيير حالة الطلب'); return; }
-            if (status === 'delivered' || status === 'completed') { if (!confirm('⚠️ هل أنت متأكد من إغلاق هذا الطلب نهائياً؟')) return; }
             try {
-                let updateData = { status, isNew: false };
-                if (status === 'preparing') {
-                    updateData.preparingStartedAt = firebase.firestore.FieldValue.serverTimestamp();
-                    const estimatedTime = prompt('⏱️ حدد وقت التجهيز (بالدقائق):', '10');
-                    if (estimatedTime && !isNaN(estimatedTime) && parseInt(estimatedTime) > 0) { updateData.estimatedTime = parseInt(estimatedTime); }
-                }
-                await db.collection('orders').doc(id).update(updateData);
-                if (status === 'delivered' || status === 'completed') { alert(`✅ تم ${status === 'delivered' ? 'توصيل' : 'إغلاق'} الطلب بنجاح!`); }
-            } catch (e) { alert('❌ خطأ: ' + e.message); }
+                await auth.signInWithEmailAndPassword(email, password);
+                // إذا كان هناك رابط محفوظ (مثل admin.html?store=...)
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirect = urlParams.get('redirect') || 'admin.html';
+                window.location.href = redirect;
+            } catch (e) {
+                errorDiv.textContent = '❌ ' + e.message;
+                errorDiv.style.display = 'block';
+            }
         };
 
-        setInterval(() => { document.querySelectorAll('[data-timer-id]').forEach(el => {}); }, 1000);
-        console.log('✅ index.html جاهز مع تطبيق الصلاحيات');
+        // إذا كان المستخدم مسجلاً بالفعل، حوله مباشرة
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirect = urlParams.get('redirect') || 'admin.html';
+                window.location.href = redirect;
+            }
+        });
     </script>
 </body>
 </html>
